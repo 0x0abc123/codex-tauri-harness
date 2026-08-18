@@ -81,6 +81,15 @@ Each of these is verified and each fails quietly if ignored.
 - **A command in `lib.rs` must not be `pub`.** The glue-code macro collides with itself and
   the build fails with `error[E0255]: the name __cmd__<name> is defined multiple times`,
   which does not mention the `pub` that caused it.
+- **Commands that create webview windows must be async.** Tauri runs a command
+  without `async` on the main thread. On Windows, synchronously calling
+  `WebviewWindowBuilder::build()` from an invoked command can deadlock WebView2 while it
+  handles the new window's resource request. The symptom is a blank detached window that
+  cannot close and eventually hangs the whole application; a dump can show
+  `EmbeddedBrowserWebView!FireWebResourceRequestedEvent` together with
+  `NtUserDestroyWindow`. Declare the command `async fn` (or use
+  `#[tauri::command(async)]`) and keep its arguments owned where possible. This is about
+  the command execution context, even when the builder call itself appears quick.
 - **Desktop and mobile capabilities use different generated schemas** (`desktop-schema.json`
   vs `mobile-schema.json`), and a capability without a `platforms` key applies everywhere.
 - **Mobile depends on two lines in `Cargo.toml` and one attribute.** `[lib] crate-type =

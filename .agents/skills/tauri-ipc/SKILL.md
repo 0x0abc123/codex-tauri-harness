@@ -65,6 +65,11 @@ async fn save_note(body: String, state: tauri::State<'_, Db>) -> Result<Note, St
   interior mutability (`Mutex`, `RwLock`) — `State` hands out a shared reference.
 - Long work must not block: make the command `async`, or move it to
   `tauri::async_runtime::spawn_blocking`, and report progress with an event.
+- A command that creates a webview window must be `async`. Tauri executes a non-async
+  command on the main thread; on Windows, invoking `WebviewWindowBuilder::build()` there
+  can deadlock WebView2's resource-request callback and leave a blank, uncloseable window
+  while the application hangs. Prefer owned command arguments because async commands
+  cannot accept borrowed arguments without a workaround.
 
 **4. Register it** in `generate_handler![…]` inside `run()`, not in `main()`.
 
@@ -127,5 +132,8 @@ Mobile plugins may also need entries in the Android manifest or `Info.plist` —
 - **Never leave the TypeScript wrapper and the Rust signature edited apart.** No compiler
   spans the gap.
 - **Never put builder setup in `main()`.** It must be in `run()` or mobile silently loses it.
+- **Never build a webview window in a synchronous invoked command.** Make the command async
+  and include a detached-window open/close test on Windows. A successful Linux test does
+  not exercise WebView2 or rule out this deadlock.
 - **Do not swallow errors into `unwrap()`.** A panic in a command takes the whole app down;
   return the error and let the UI explain it.
