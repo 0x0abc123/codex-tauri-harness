@@ -35,11 +35,35 @@ and both are held to `docs/ui-design-principles.md`.
 
 `components.json` at an app's root is how every skill tells which path it is on.
 
+### Choosing components on the shadcn path
+
+Scaffolding with `--shadcn` makes shadcn-svelte available; it does not mean every control
+must use it. The `build-component` skill applies this order:
+
+1. Use semantic platform HTML when it already provides the behaviour: `<button>`, `<input>`,
+   `<details>`, `<table>` and similar elements bring native keyboard and accessibility
+   behaviour without a wrapper.
+2. Use shadcn-svelte for difficult composite controls such as dialogs, comboboxes, select
+   controls, date pickers, tooltips, command palettes and advanced data tables. These need
+   focus management, typeahead and ARIA relationships that are easy to get subtly wrong.
+3. Hand-write the component when neither of those fits. On the plain-CSS path this is also
+   the only non-native option.
+
+Do not add a shadcn Button around a native `<button>` merely for appearance, and do not
+hand-roll a complex combobox when the shadcn path is available. Generated components are
+copied into `src/lib/components/ui/` and become application-owned source: read them, test
+their keyboard and screen-reader behaviour, and edit them when necessary. Running
+`npm run ui add -o <name>` later will overwrite local edits.
+
 On the shadcn path the token layer stays the single source of truth: shadcn's utilities are
 mapped onto our tokens through `@theme inline`, so `bg-primary` resolves to `var(--accent)`
 and retheming is still one edit. `shadcn-svelte init` is never run — it would overwrite
 `src/app.css` — so the overlay pre-writes everything it would have generated. See
 `template-shadcn/README.md`.
+
+Within a component, use either Tailwind utilities or a scoped `<style>` block backed by the
+same design tokens; do not mix styling approaches casually or introduce arbitrary colours
+and dimensions. No second component or CSS framework is permitted.
 
 ## Prerequisites
 

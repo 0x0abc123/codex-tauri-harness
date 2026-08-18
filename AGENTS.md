@@ -103,6 +103,16 @@ Each of these is verified and each fails quietly if ignored.
 
 ### On the shadcn-svelte path
 
+- **Exclude Svelte virtual style modules from Tailwind's transform filter.** In dev mode,
+  Svelte emits every component `<style>` block as a virtual
+  `*.svelte?svelte&type=style&lang.css` module. Without the exclusion already implemented in
+  `template-shadcn/vite.config.ts`, Tailwind's pre-transform can receive the component source
+  instead of CSS and report Svelte declarations such as `onMount`, imports, or `{#if ...}` as
+  `Invalid declaration`. Keep Tailwind before Svelte, create its plugin array once, append
+  `/\.svelte\?svelte&type=style/` to each transform filter's `id.exclude`, and spread that
+  filtered array into `plugins`. Do not replace this with a bare
+  `plugins: [tailwindcss(), svelte()]`. Component styles use ordinary scoped CSS and design
+  tokens; global `src/app.css` remains processed by Tailwind.
 - **Never run `shadcn-svelte init`.** It asks for the global CSS file and then overwrites
   it — that file is `src/app.css`, the whole design-token layer. Everything `init` writes is
   already in place, so only `npm run ui add <component>` is ever needed. If someone runs it,

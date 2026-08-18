@@ -8,10 +8,24 @@ import process from 'node:process'
 // Without it the dev server binds to 127.0.0.1 and the handset cannot reach it.
 const host = process.env.TAURI_DEV_HOST
 
+// Svelte emits component styles as virtual `*.svelte?svelte&type=style` modules. Tailwind's
+// pre-transform can race Svelte's loader in dev mode and receive component source rather than
+// CSS, producing misleading "Invalid declaration" errors for imports or Svelte blocks.
+// Scoped component styles contain ordinary CSS, so Tailwind has no work to do on these modules;
+// the global app.css entry remains fully processed.
+const tailwindPlugins = tailwindcss()
+type TailwindTransformFilter = {
+  filter?: { id?: { exclude?: Array<RegExp | string> } }
+}
+for (const plugin of tailwindPlugins) {
+  const transform = plugin.transform as TailwindTransformFilter | undefined
+  transform?.filter?.id?.exclude?.push(/\.svelte\?svelte&type=style/)
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   // Tailwind before svelte: it must see the markup the Svelte plugin passes through.
-  plugins: [tailwindcss(), svelte()],
+  plugins: [...tailwindPlugins, svelte()],
 
   // SvelteKit provides `$lib` for free; a vanilla Vite project has to declare it, in three
   // places that must agree — here, tsconfig.json and tsconfig.app.json. shadcn-svelte
